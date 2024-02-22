@@ -134,4 +134,3 @@ for i in range(len(t)):
     print(f[i] - t[i])
 
 print("Avg off: ", s / 660)
-
