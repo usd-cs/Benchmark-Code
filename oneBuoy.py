@@ -8,19 +8,28 @@ Date: 2/20/2024
 # import libraries needed
 import pandas as pd
 pd.set_option('display.max_columns', None)
-import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
-from scipy.stats import norm, skew, probplot
-from scipy.special import boxcox1p
-import warnings
-warnings.filterwarnings('ignore')
 from seebuoy import NDBC
-%matplotlib inline 
+from sklearn.model_selection import KFold, cross_val_score
 from sklearn.impute import SimpleImputer
+
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import KFold, cross_val_score
+from sklearn.metrics import mean_squared_error
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.neighbors import KNeighborsRegressor
 
 def get_buoy_data(buoy_num):
     ndbc = NDBC()
+
+    # Information on NDBC's ~1800 buoys and gliders
+    wave_df = ndbc.stations()
+
+    # list all available data for all buoys
+    df_data = ndbc.available_data()
+
     return ndbc.get_data(buoy_num)
 
 def handle_missing_data(buoy):
@@ -48,34 +57,42 @@ def handle_missing_data(buoy):
     # Interpolate missing values using spline interpolation
     buoy_interpolated = buoy.interpolate(method='spline', order=2)
 
-    return (buoy_mean, buoy_mode, buoy_interpolated)
-
-
-
-def handle_outliers(buoy):
-    """
-    """
-
     # Remove non finite values
-    ny_buoy_mode = ny_buoy_mode[np.isfinite(ny_buoy_mode['wave_height'])]
-    ny_buoy_mean = ny_buoy_mean[np.isfinite(ny_buoy_mean['wave_height'])]
-    ny_buoy_interpolated = ny_buoy_interpolated[np.isfinite(ny_buoy_interpolated['wave_height'])]
+    buoy_mode = buoy_mode[np.isfinite(buoy_mode['wave_height'])]
+    buoy_mean = buoy_mean[np.isfinite(buoy_mean['wave_height'])]
+    buoy_interpolated = buoy_interpolated[np.isfinite(buoy_interpolated['wave_height'])]
 
+    del buoy_interpolated["pressure_tendency"]
 
+    return (buoy_mean, buoy_mode, buoy_interpolated)
 
 def handle_analytics(buoy, model):
     """
     """
 
-    train_df = ny_buoy[ny_buoy_mode.columns.difference(['wave_height', 'average_period'])]
+    train_df = buoy[buoy.columns.difference(['wave_height', 'average_period'])]
     
     # Validation function for wave height
     n_folds = 5
 
-    def rmse_cv(model,n_folds):
-        kf=KFold(n_splits=n_folds)
-        rmse = np.sqrt(-cross_val_score(model, train_df, ny_buoy_mode.wave_height, scoring="neg_mean_squared_error", cv = kf))
-        return rmse
+    kf=KFold(n_splits=n_folds)
+    rmse = np.sqrt(-cross_val_score(model, train_df, buoy.wave_height, scoring="neg_mean_squared_error", cv = kf))
+    return rmse
 
 
 buoy = get_buoy_data("44065")
+
+buoyTup = handle_missing_data(buoy)
+
+lr_w_int = LinearRegression()
+lr_no_int = LinearRegression(fit_intercept=False)
+rf = RandomForestRegressor(n_estimators=100)
+
+modelList = [lr_w_int, lr_no_int, rf]
+
+i = 0
+for buoy in buoyTup:
+    print(i)
+    i += 1
+    for model in modelList:
+        print(handle_analytics(buoy, model))
