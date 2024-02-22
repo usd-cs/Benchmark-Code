@@ -70,7 +70,6 @@ def handle_missing_data(buoy):
 def handle_analytics(buoy, model):
     """
     """
-
     train_df = buoy[buoy.columns.difference(['wave_height', 'average_period'])]
     
     # Validation function for wave height
@@ -93,7 +92,12 @@ modelList = [lr_w_int, lr_no_int, rf]
 
 i = 0
 for buoy in buoyTup:
-    print(i)
+    if i == 0:
+        print("lr_w_int")
+    elif i == 1:
+        print("lr_no_int")
+    else:
+        print("rf")
     i += 1
     for model in modelList:
         print(handle_analytics(buoy, model))
