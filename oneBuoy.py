@@ -56,13 +56,14 @@ def handle_missing_data(buoy):
 
     # Interpolate missing values using spline interpolation
     buoy_interpolated = buoy.interpolate(method='spline', order=2)
+    del buoy_interpolated["pressure_tendency"]
+    buoy_interpolated = buoy_interpolated.dropna()
 
     # Remove non finite values
     buoy_mode = buoy_mode[np.isfinite(buoy_mode['wave_height'])]
     buoy_mean = buoy_mean[np.isfinite(buoy_mean['wave_height'])]
     buoy_interpolated = buoy_interpolated[np.isfinite(buoy_interpolated['wave_height'])]
 
-    del buoy_interpolated["pressure_tendency"]
 
     return (buoy_mean, buoy_mode, buoy_interpolated)
 
