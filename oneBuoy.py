@@ -130,9 +130,6 @@ def predict(buoy, model, predictedAttribute, testSize):
     print("Predicted attribute: ", predictedAttribute)
     print("Avg off: ", sumOfDifferences / len(predictions))
 
-
-
-
 buoy = get_buoy_data("44065")
 
 buoyTup = handle_missing_data(buoy)
@@ -145,16 +142,17 @@ modelList = [lr_w_int, lr_no_int, rf]
 predictAttributesList = ["wave_heigth", "dominant_period"]
 
 for i in range(len(buoyTup)):
-    if i == 0:
-        print("Imputation method: Mean")
-    elif i == 1:
-        print("Imputation method: Mode")
-    else:
-        print("Imputation method: Interpolation")
-    for j in range(
-
-
-predict(buoyTup[0], modelList[0], predictAttributesList[0], 0.2)
+    for model in modelList:
+        for attribute in predictAttributesList:
+            if i == 0:
+                print("Imputation method: Mean")
+            elif i == 1:
+                print("Imputation method: Mode")
+            elif i == 2:
+                print("Imputation method: Interpolation")
+            else:
+                print("Imputation method: Krigging")
+            predict(buoyTup[i], model, attribute, 0.2)
 
 # i = 0
 # for buoy in buoyTup:
