@@ -59,22 +59,5 @@ def kriging(buoy_frame):
                     temp_bf[attribute][z] = final_vars[z]
     return temp_bf
 
-def main():
-    ndbc = NDBC()
 
-    # Information on NDBC's ~1800 buoys and gliders
-    wave_df = ndbc.stations()
 
-    # list all available data for all buoys
-    df_data = ndbc.available_data()
-
-    # Get info on La Jave Bank (42.500N 64.02W) 
-    # SEEBUOY DATA
-    station_id = "44065"
-    see_buoy = ndbc.get_data(station_id)
-    print(see_buoy)
-    print(kriging(see_buoy))
-    # print(type(see_buoy["dominant_period"][2]))
-
-if __name__ == "__main__":
-    main()
