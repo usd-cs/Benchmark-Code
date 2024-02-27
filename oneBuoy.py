@@ -66,6 +66,7 @@ def handle_missing_data(buoy):
     buoy_mode = buoy_mode[np.isfinite(buoy_mode['wave_height'])]
     buoy_mean = buoy_mean[np.isfinite(buoy_mean['wave_height'])]
     buoy_interpolated = buoy_interpolated[np.isfinite(buoy_interpolated['wave_height'])]
+    buoy_kriging = buoy_kriging[np.isfinite(buoy_kriging['wave_height'])]
 
 
     return (buoy_mean, buoy_mode, buoy_interpolated, buoy_kriging)
