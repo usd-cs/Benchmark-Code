@@ -151,7 +151,7 @@ for i in range(len(buoyTup)):
             elif i == 2:
                 print("Imputation method: Interpolation")
             else:
-                print("Imputation method: Krigging")
+                print("Imputation method: Kriging")
             predict(buoyTup[i], model, attribute, 0.2)
 
 # i = 0
