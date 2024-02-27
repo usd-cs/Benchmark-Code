@@ -82,6 +82,55 @@ def handle_analytics(buoy, model):
     rmse = np.sqrt(-cross_val_score(model, train_df, buoy.wave_height, scoring="neg_mean_squared_error", cv = kf))
     return rmse
 
+def predict(buoy, model, predictedAttribute, testSize):
+    """
+    Used to make predictions with a selected buoy df, model, and attribute
+
+    @param buoy: Pandas Dataframe of buoy data
+    @param model: The model selected to make predictions
+    @param predictedAttribute: String value of "wave_height" or "dominant_period"
+    @param testSize: How large the test size should be (0 < test_size < 1)
+    """
+
+    #This should be changed, but I have it in because I cant figure out how to fit a model using float vals, maybe
+    buoy = buoy * 10
+
+    #Sets up the train and test data based on target variable
+    if predictedAttribute == "wave_heigth":
+        cols = ['wind_speed', 'wind_gust', 'dominant_period',
+                'average_period', 'mean_wave_direction', 'pressure', 'water_temp']
+        X_train, X_test, y_train, y_test = train_test_split(buoy[cols], buoy['wave_height'], test_size=testSize, random_state=42)
+    elif predictedAttribute == "dominant_period":
+        cols = ['wind_speed', 'wind_gust', 'wave_height',
+                'average_period', 'mean_wave_direction', 'pressure', 'water_temp']
+        X_train, X_test, y_train, y_test = train_test_split(buoy[cols], buoy['dominant_period'], test_size=testSize, random_state=42)
+    else:
+        print("UH OH")
+
+    #Fit the model to the train data
+    model.fit(X_train, y_train.astype('float'))
+
+    #Make predictions on the test data
+    predictions = model.predict(X_test)
+    actual = list(y_test)
+
+    #Reverts the predictions to original scale, need to change with line 93
+    for i in range(len(predictions)):
+        predictions[i] = predictions[i] / 10
+        actual[i] = actual[i] / 10
+
+    sumOfDifferences = 0
+
+    for i in range(len(predictions)):
+        sumOfDifferences += abs(actual[i] - predictions[i])
+
+
+    print("Model used: ", model)
+    print("Predicted attribute: ", predictedAttribute)
+    print("Avg off: ", sumOfDifferences / len(predictions))
+
+
+
 
 buoy = get_buoy_data("44065")
 
@@ -92,6 +141,19 @@ lr_no_int = LinearRegression(fit_intercept=False)
 rf = RandomForestRegressor(n_estimators=100)
 
 modelList = [lr_w_int, lr_no_int, rf]
+predictAttributesList = ["wave_heigth", "dominant_period"]
+
+for i in range(len(buoyTup)):
+    if i == 0:
+        print("Imputation method: Mean")
+    elif i == 1:
+        print("Imputation method: Mode")
+    else:
+        print("Imputation method: Interpolation")
+    for j in range(
+
+
+predict(buoyTup[0], modelList[0], predictAttributesList[0], 0.2)
 
 # i = 0
 # for buoy in buoyTup:
@@ -106,33 +168,33 @@ modelList = [lr_w_int, lr_no_int, rf]
 #         print(handle_analytics(buoy, model))
 
 
-waveHeightCols = ['wind_speed', 'wind_gust', 'dominant_period',
-       'average_period', 'mean_wave_direction', 'pressure', 'water_temp']
-dominantPeriodCols = ['wind_speed', 'wind_gust', 'wave_height',
-       'average_period', 'mean_wave_direction', 'pressure', 'water_temp']
+# waveHeightCols = ['wind_speed', 'wind_gust', 'dominant_period',
+#        'average_period', 'mean_wave_direction', 'pressure', 'water_temp']
+# dominantPeriodCols = ['wind_speed', 'wind_gust', 'wave_height',
+#        'average_period', 'mean_wave_direction', 'pressure', 'water_temp']
 
-mean = buoyTup[0]
-mean = mean * 10
+# mean = buoyTup[0]
+# mean = mean * 10
 
-X_train, X_test, y_train, y_test = train_test_split(mean[waveHeightCols], mean['wave_height'], test_size=0.2, random_state=42)
+# X_train, X_test, y_train, y_test = train_test_split(mean[waveHeightCols], mean['wave_height'], test_size=0.2, random_state=42)
 
-y_train = y_train.astype('float')
+# y_train = y_train.astype('float')
 
-rf.fit(X_train, y_train)
+# rf.fit(X_train, y_train)
 
-t = rf.predict(X_test)
+# t = rf.predict(X_test)
 
-print(len(y_test))
+# print(len(y_test))
 
-f = list(y_test)
+# f = list(y_test)
 
-for i in range(len(t)):
-    t[i] = t[i] / 10
-    f[i] = f[i] / 10
+# for i in range(len(t)):
+#     t[i] = t[i] / 10
+#     f[i] = f[i] / 10
 
-s = 0
-for i in range(len(t)):
-    s += abs(f[i] - t[i])
-    print(f[i] - t[i])
+# s = 0
+# for i in range(len(t)):
+#     s += abs(f[i] - t[i])
+#     print(f[i] - t[i])
 
-print("Avg off: ", s / 660)
+# print("Avg off: ", s / 660)
