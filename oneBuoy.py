@@ -22,14 +22,10 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import train_test_split
 
+from kriging import kriging
+
 def get_buoy_data(buoy_num):
     ndbc = NDBC()
-
-    # Information on NDBC's ~1800 buoys and gliders
-    wave_df = ndbc.stations()
-
-    # list all available data for all buoys
-    df_data = ndbc.available_data()
 
     return ndbc.get_data(buoy_num)
 
@@ -38,10 +34,10 @@ def handle_missing_data(buoy):
     The data has some missing values. We impute these values by mode, mean, and interpolation.
     """
     # dropping cols where there is 100% NA
-    buoy.dropna(axis=1, how='all', inplace=True)
+    no_na = buoy.dropna(axis=1, how='all', inplace=True)
 
     # dropping rows where target value us null
-    buoy.dropna(subset=['average_period'], inplace=True)
+    buoy = no_na.dropna(subset=['average_period'], inplace=True)
     buoy.dropna(subset=['wave_height'], inplace=True)
 
     # IMPUTATIONS
@@ -58,7 +54,13 @@ def handle_missing_data(buoy):
     # Interpolate missing values using spline interpolation
     buoy_interpolated = buoy.interpolate(method='spline', order=2)
     del buoy_interpolated["pressure_tendency"]
-    buoy_interpolated = buoy_interpolated.dropna()
+    buoy_interpolated = buoy_interpolated.dropna()   
+
+    # Interpolate missing vals using kriging
+    buoy_kriging = kriging.kriging(no_na)
+    buoy_kriging.dropna(subset=['average_period'], inplace=True)
+    buoy_kriging.dropna(subset=['wave_height'], inplace=True)
+     
 
     # Remove non finite values
     buoy_mode = buoy_mode[np.isfinite(buoy_mode['wave_height'])]
@@ -66,7 +68,7 @@ def handle_missing_data(buoy):
     buoy_interpolated = buoy_interpolated[np.isfinite(buoy_interpolated['wave_height'])]
 
 
-    return (buoy_mean, buoy_mode, buoy_interpolated)
+    return (buoy_mean, buoy_mode, buoy_interpolated, buoy_kriging)
 
 def handle_analytics(buoy, model):
     """
