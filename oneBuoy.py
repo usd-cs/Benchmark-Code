@@ -131,9 +131,6 @@ def predict(buoy, model, predictedAttribute, testSize):
     print("Predicted attribute: ", predictedAttribute)
     print("Avg off: ", sumOfDifferences / len(predictions))
 
-
-
-
 buoy = get_buoy_data("44065")
 
 buoyTup = handle_missing_data(buoy)
@@ -146,16 +143,17 @@ modelList = [lr_w_int, lr_no_int, rf]
 predictAttributesList = ["wave_heigth", "dominant_period"]
 
 for i in range(len(buoyTup)):
-    if i == 0:
-        print("Imputation method: Mean")
-    elif i == 1:
-        print("Imputation method: Mode")
-    else:
-        print("Imputation method: Interpolation")
-    for j in range(
-
-
-predict(buoyTup[0], modelList[0], predictAttributesList[0], 0.2)
+    for model in modelList:
+        for attribute in predictAttributesList:
+            if i == 0:
+                print("Imputation method: Mean")
+            elif i == 1:
+                print("Imputation method: Mode")
+            elif i == 2:
+                print("Imputation method: Interpolation")
+            else:
+                print("Imputation method: Kriging")
+            predict(buoyTup[i], model, attribute, 0.2)
 
 # i = 0
 # for buoy in buoyTup:
@@ -168,35 +166,3 @@ predict(buoyTup[0], modelList[0], predictAttributesList[0], 0.2)
 #     i += 1
 #     for model in modelList:
 #         print(handle_analytics(buoy, model))
-
-
-# waveHeightCols = ['wind_speed', 'wind_gust', 'dominant_period',
-#        'average_period', 'mean_wave_direction', 'pressure', 'water_temp']
-# dominantPeriodCols = ['wind_speed', 'wind_gust', 'wave_height',
-#        'average_period', 'mean_wave_direction', 'pressure', 'water_temp']
-
-# mean = buoyTup[0]
-# mean = mean * 10
-
-# X_train, X_test, y_train, y_test = train_test_split(mean[waveHeightCols], mean['wave_height'], test_size=0.2, random_state=42)
-
-# y_train = y_train.astype('float')
-
-# rf.fit(X_train, y_train)
-
-# t = rf.predict(X_test)
-
-# print(len(y_test))
-
-# f = list(y_test)
-
-# for i in range(len(t)):
-#     t[i] = t[i] / 10
-#     f[i] = f[i] / 10
-
-# s = 0
-# for i in range(len(t)):
-#     s += abs(f[i] - t[i])
-#     print(f[i] - t[i])
-
-# print("Avg off: ", s / 660)
