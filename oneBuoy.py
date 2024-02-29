@@ -26,6 +26,12 @@ from kriging import kriging
 
 def get_buoy_data(buoy_num):
     ndbc = NDBC()
+    
+    # Information on NDBC's ~1800 buoys and gliders
+    wave_df = ndbc.stations()
+
+    # list all available data for all buoys
+    df_data = ndbc.available_data()
 
     return ndbc.get_data(buoy_num)
 
