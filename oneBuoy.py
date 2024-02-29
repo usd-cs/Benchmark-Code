@@ -33,11 +33,17 @@ def handle_missing_data(buoy):
     """
     The data has some missing values. We impute these values by mode, mean, and interpolation.
     """
+
+    # Interpolate missing vals using kriging
+    buoy_kriging = kriging.kriging(buoy)
+    buoy_kriging.dropna(subset=['average_period'], inplace=True)
+    buoy_kriging.dropna(subset=['wave_height'], inplace=True)
+
     # dropping cols where there is 100% NA
-    no_na = buoy.dropna(axis=1, how='all', inplace=True)
+    buoy.dropna(axis=1, how='all', inplace=True)
 
     # dropping rows where target value us null
-    buoy = no_na.dropna(subset=['average_period'], inplace=True)
+    buoy.dropna(subset=['average_period'], inplace=True)
     buoy.dropna(subset=['wave_height'], inplace=True)
 
     # IMPUTATIONS
@@ -55,11 +61,6 @@ def handle_missing_data(buoy):
     buoy_interpolated = buoy.interpolate(method='spline', order=2)
     del buoy_interpolated["pressure_tendency"]
     buoy_interpolated = buoy_interpolated.dropna()   
-
-    # Interpolate missing vals using kriging
-    buoy_kriging = kriging.kriging(no_na)
-    buoy_kriging.dropna(subset=['average_period'], inplace=True)
-    buoy_kriging.dropna(subset=['wave_height'], inplace=True)
      
 
     # Remove non finite values
