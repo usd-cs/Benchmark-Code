@@ -29,10 +29,10 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.neighbors import KNeighborsRegressor
 
 # TODO: add parameters to specify x,y location 
-def data_ingestion():
+def get_buoy_data():
     """
     @param: none
-    @return: ny_buoy, a dataframe containing data for all buoys in the NY area
+    @return: buoys, a dataframe containing data for all buoys in the NY area
     """
     # create NDBC object from seeabuoy to access buoy data
     ndbc = NDBC()
@@ -64,7 +64,7 @@ def data_ingestion():
     ny_station_ids = piv_ny.index.tolist()
 
     # creating a df for the combined data for all buoys around NY
-    ny_buoys_standard = pd.DataFrame()
+    buoys_standard = pd.DataFrame()
 
     for station_id in ny_station_ids:
 
@@ -75,37 +75,37 @@ def data_ingestion():
         df_station['station_id'] = station_id
         
         # Concatenate the current station's data to the combined DataFrame
-        ny_buoys_standard = pd.concat([ny_buoys_standard, df_station], ignore_index=False)
+        buoys_standard = pd.concat([buoys_standard, df_station], ignore_index=False)
 
-    ny_buoy = ny_buoys_standard
+    buoys = buoys_standard
         
     # have to fix the indexing
-    ny_buoy = ny_buoy.reset_index()
-    return ny_buoy
+    buoys = buoys.reset_index()
+    return buoys
 
-def handle_missing_data(ny_buoy):
+def handle_missing_data(buoys):
     """
-    @param: ny_buoy, data for training
-    @return: a tuple of ny_buoy_mode, ny_buoy_mean, and ny_buoy_interpolated, 
-    the dataframes for ny_buoy but with imputed data and
+    @param: buoys, data for training
+    @return: a tuple of buoy_mode, and buoy_interpolated, 
+    the dataframes for buoys but with imputed data and
     no outliers
     """
     # missing data
-    total = ny_buoy.isnull().sum().sort_values(ascending=False)
-    percent = (ny_buoy.isnull().sum() / ny_buoy.isnull().count()).sort_values(
+    total = buoys.isnull().sum().sort_values(ascending=False)
+    percent = (buoys.isnull().sum() / buoys.isnull().count()).sort_values(
         ascending=False
     )
     missing_data = pd.concat([total, percent], axis=1, keys=["Total", "Percent"])
     print(missing_data)
 
     # dropping rows where average_period is null
-    ny_buoy.dropna(subset=['average_period'], inplace=True)
+    buoys.dropna(subset=['average_period'], inplace=True)
 
     # dropping rows wehre wave_height is null
-    ny_buoy.dropna(subset=['wave_height'], inplace=True)
+    buoys.dropna(subset=['wave_height'], inplace=True)
 
     # dropping cols where there is 100% NA
-    ny_buoy.dropna(axis=1, how='all', inplace=True)
+    buoys.dropna(axis=1, how='all', inplace=True)
 
     
     # TODO: edit for all columns
@@ -122,32 +122,32 @@ def handle_missing_data(ny_buoy):
         "pressure_tendency",
         "water_temp"
     ]
-    ny_buoy_mode = ny_buoy.copy()
-    ny_buoy_interpolated = ny_buoy.copy()
+    buoy_mode = buoys.copy()
+    buoy_interpolated = buoys.copy()
 
     for column in columns_to_fill:
-        ny_buoy_mode[column] = ny_buoy_mode[column].fillna(ny_buoy_mode[column].mode()[0])
+        buoy_mode[column] = buoy_mode[column].fillna(buoy_mode[column].mode()[0])
 
     # for column in columns_to_fill:
-    #     ny_buoy_interpolated[column] = ny_buoy_interpolated[column].fillna(ny_buoy_mode[column].mode()[0])
+    #     buoy_interpolated[column] = buoy_interpolated[column].fillna(buoy_mode[column].mode()[0])
 
-    #ny_buoy_interpolated = ny_buoy[columns_to_fill].interpolate(method='spline', order=2)
+    #buoy_interpolated = buoys[columns_to_fill].interpolate(method='spline', order=2)
     for column in columns_to_fill:
-        ny_buoy_interpolated[column] = ny_buoy_interpolated[column].fillna(ny_buoy_interpolated[column].interpolate(method='spline', order=2))
+        buoy_interpolated[column] = buoy_interpolated[column].fillna(buoy_interpolated[column].interpolate(method='spline', order=2))
     
     # check if there are any additional missing values
     for column in columns_to_fill:
-        if column in ny_buoy_interpolated.columns and ny_buoy_interpolated[column].isnull().any():
-            ny_buoy_interpolated = ny_buoy_interpolated.drop(column, axis=1)
+        if column in buoy_interpolated.columns and buoy_interpolated[column].isnull().any():
+            buoy_interpolated = buoy_interpolated.drop(column, axis=1)
 
     print("INTERPOLATION")
-    display(ny_buoy_interpolated)
+    display(buoy_interpolated)
 
     # Remove non finite values
-    # ny_buoy_mode = ny_buoy_mode[np.isfinite(ny_buoy_mode['wave_height'])]
-    # ny_buoy_interpolated = ny_buoy_interpolated[np.isfinite(ny_buoy_interpolated['wave_height'])]
+    # buoy_mode = buoy_mode[np.isfinite(buoy_mode['wave_height'])]
+    # buoy_interpolated = buoy_interpolated[np.isfinite(buoy_interpolated['wave_height'])]
     
-    return (ny_buoy_mode, ny_buoy_interpolated)
+    return (buoy_mode, buoy_interpolated)
 
 def time_series_split_regression(
     data,
@@ -317,10 +317,10 @@ def print_rmse_and_dates(model_rmse, model_split_dates, num_records, model_name)
     rmse_std = compute_rmse_std(model_rmse)
     print(model_name, "RMSE score: {:.4f} ({:.4f})\n".format(rmse_std[0], rmse_std[1]))
 
-def train_model(ny_buoy):
+def train_model(buoys):
     """
     Train the model for linear regression and random forest
-    @param ny_buoy: the data we're training on
+    @param buoys: the data we're training on
     @return
     """
     ##################### LINEAR REGRESSION MODELS ###############
@@ -336,7 +336,7 @@ def train_model(ny_buoy):
         lr_w_int_split_dates,
         num_records,
     ) = time_series_split_regression(
-        ny_buoy,
+        buoys,
         regressor=lr_w_int,
     )
     # Print RMSE scores and split dates for each split
@@ -348,7 +348,7 @@ def train_model(ny_buoy):
     rf = RandomForestRegressor(n_estimators=100)
 
     rf_preds_df, rf_rmse, rf_split_dates, num_records = time_series_split_regression(
-        ny_buoy,
+        buoys,
         regressor=rf,
     )
     print_rmse_and_dates(rf_rmse, rf_split_dates, num_records, "Random Forest")
@@ -357,15 +357,15 @@ def train_model(ny_buoy):
 # PUT THE WHOLE SHEBANG TOGETHER
 
 # ingest data
-ny_buoy = data_ingestion()
+buoys = get_buoy_data()
 
 # handle missing data
-ny_buoy_mode, ny_buoy_interpolated = handle_missing_data(ny_buoy)
+buoy_mode, buoy_interpolated = handle_missing_data(buoys)
 
 # train the model
 print("Test with mode imputation\n")
-train_model(ny_buoy_mode)
+train_model(buoy_mode)
 
 print("Test with interpolation imputation\n")
-train_model(ny_buoy_interpolated)
+train_model(buoy_interpolated)
 
