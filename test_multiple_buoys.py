@@ -1,4 +1,5 @@
 from seebuoy import NDBC
+from IPython.display import display
 import pandas as pd
 pd.set_option('display.max_columns', None)
 import matplotlib.pyplot as plt
@@ -77,7 +78,9 @@ def data_ingestion():
         ny_buoys_standard = pd.concat([ny_buoys_standard, df_station], ignore_index=False)
 
     ny_buoy = ny_buoys_standard
-    print("finished data ingestion\n")
+        
+    # have to fix the indexing
+    ny_buoy = ny_buoy.reset_index()
     return ny_buoy
 
 def handle_missing_data(ny_buoy):
@@ -87,9 +90,13 @@ def handle_missing_data(ny_buoy):
     the dataframes for ny_buoy but with imputed data and
     no outliers
     """
-
-    # dropping cols where there is 100% NA
-    ny_buoy.dropna(axis=1, how='all', inplace=True)
+    # missing data
+    total = ny_buoy.isnull().sum().sort_values(ascending=False)
+    percent = (ny_buoy.isnull().sum() / ny_buoy.isnull().count()).sort_values(
+        ascending=False
+    )
+    missing_data = pd.concat([total, percent], axis=1, keys=["Total", "Percent"])
+    print(missing_data)
 
     # dropping rows where average_period is null
     ny_buoy.dropna(subset=['average_period'], inplace=True)
@@ -97,25 +104,50 @@ def handle_missing_data(ny_buoy):
     # dropping rows wehre wave_height is null
     ny_buoy.dropna(subset=['wave_height'], inplace=True)
 
-    # Replace missing data with mode
-    imputer = SimpleImputer(strategy='most_frequent')
-    imputer.fit(ny_buoy)
-    ny_buoy_mode = pd.DataFrame(imputer.transform(ny_buoy), columns=ny_buoy.columns)
+    # dropping cols where there is 100% NA
+    ny_buoy.dropna(axis=1, how='all', inplace=True)
 
-    # Replace missing data with mean
-    imputer = SimpleImputer(strategy='mean')
-    imputer.fit(ny_buoy)
-    ny_buoy_mean = pd.DataFrame(imputer.transform(ny_buoy), columns=ny_buoy.columns)
+    
+    # TODO: edit for all columns
+    # Missing categorical data in which we impute the mode (most common value)
+    # This is done because columns have low cardinality so the mode makes sense
+    # Imputing these values as a new value called "None" would be appropriate as well
+    # You could train 2 models: 1 using the mode, and another using "None" and compare results
+    columns_to_fill = [
+        "wind_speed",
+        "wind_gust",
+        "dominant_period",
+        "mean_wave_direction",
+        "pressure",
+        "pressure_tendency",
+        "water_temp"
+    ]
+    ny_buoy_mode = ny_buoy.copy()
+    ny_buoy_interpolated = ny_buoy.copy()
 
-    # Interpolate missing values using spline interpolation
-    ny_buoy_interpolated = ny_buoy.interpolate(method='spline', order=2)
+    for column in columns_to_fill:
+        ny_buoy_mode[column] = ny_buoy_mode[column].fillna(ny_buoy_mode[column].mode()[0])
+
+    # for column in columns_to_fill:
+    #     ny_buoy_interpolated[column] = ny_buoy_interpolated[column].fillna(ny_buoy_mode[column].mode()[0])
+
+    #ny_buoy_interpolated = ny_buoy[columns_to_fill].interpolate(method='spline', order=2)
+    for column in columns_to_fill:
+        ny_buoy_interpolated[column] = ny_buoy_interpolated[column].fillna(ny_buoy_interpolated[column].interpolate(method='spline', order=2))
+    
+    # check if there are any additional missing values
+    for column in columns_to_fill:
+        if column in ny_buoy_interpolated.columns and ny_buoy_interpolated[column].isnull().any():
+            ny_buoy_interpolated = ny_buoy_interpolated.drop(column, axis=1)
+
+    print("INTERPOLATION")
+    display(ny_buoy_interpolated)
 
     # Remove non finite values
-    ny_buoy_mode = ny_buoy_mode[np.isfinite(ny_buoy_mode['wave_height'])]
-    ny_buoy_mean = ny_buoy_mean[np.isfinite(ny_buoy_mean['wave_height'])]
-    ny_buoy_interpolated = ny_buoy_interpolated[np.isfinite(ny_buoy_interpolated['wave_height'])]
-
-    return (ny_buoy_mode, ny_buoy_mean, ny_buoy_interpolated)
+    # ny_buoy_mode = ny_buoy_mode[np.isfinite(ny_buoy_mode['wave_height'])]
+    # ny_buoy_interpolated = ny_buoy_interpolated[np.isfinite(ny_buoy_interpolated['wave_height'])]
+    
+    return (ny_buoy_mode, ny_buoy_interpolated)
 
 def time_series_split_regression(
     data,
@@ -328,14 +360,11 @@ def train_model(ny_buoy):
 ny_buoy = data_ingestion()
 
 # handle missing data
-ny_buoy_mode, ny_buoy_mean, ny_buoy_interpolated = handle_missing_data(ny_buoy)
+ny_buoy_mode, ny_buoy_interpolated = handle_missing_data(ny_buoy)
 
 # train the model
 print("Test with mode imputation\n")
 train_model(ny_buoy_mode)
-
-print("Test with mean imputation\n")
-train_model(ny_buoy_mean)
 
 print("Test with interpolation imputation\n")
 train_model(ny_buoy_interpolated)
