@@ -321,64 +321,6 @@ def train_model(buoy):
     print_rmse_and_dates(rf_rmse, rf_split_dates, num_records, "Random Forest")
 
 
-def handle_analytics(buoy, model):
-    """
-    """
-    train_df = buoy[buoy.columns.difference(['wave_height', 'average_period'])]
-    
-    # Validation function for wave height
-    n_folds = 5
-
-    kf=KFold(n_splits=n_folds)
-    rmse = np.sqrt(-cross_val_score(model, train_df, buoy.wave_height, scoring="neg_mean_squared_error", cv = kf))
-    return rmse
-
-def predict(buoy, model, predictedAttribute, testSize):
-    """
-    Used to make predictions with a selected buoy df, model, and attribute
-
-    @param buoy: Pandas Dataframe of buoy data
-    @param model: The model selected to make predictions
-    @param predictedAttribute: String value of "wave_height" or "dominant_period"
-    @param testSize: How large the test size should be (0 < test_size < 1)
-    """
-
-    #This should be changed, but I have it in because I cant figure out how to fit a model using float vals, maybe
-    buoy = buoy * 10
-
-    #Sets up the train and test data based on target variable
-    if predictedAttribute == "wave_heigth":
-        cols = ['wind_speed', 'wind_gust', 'dominant_period',
-                'average_period', 'mean_wave_direction', 'pressure', 'water_temp']
-        X_train, X_test, y_train, y_test = train_test_split(buoy[cols], buoy['wave_height'], test_size=testSize, random_state=42)
-    elif predictedAttribute == "dominant_period":
-        cols = ['wind_speed', 'wind_gust', 'wave_height',
-                'average_period', 'mean_wave_direction', 'pressure', 'water_temp']
-        X_train, X_test, y_train, y_test = train_test_split(buoy[cols], buoy['dominant_period'], test_size=testSize, random_state=42)
-    else:
-        print("UH OH")
-
-    #Fit the model to the train data
-    model.fit(X_train, y_train.astype('float'))
-
-    #Make predictions on the test data
-    predictions = model.predict(X_test)
-    actual = list(y_test)
-
-    #Reverts the predictions to original scale, need to change with line 93
-    for i in range(len(predictions)):
-        predictions[i] = predictions[i] / 10
-        actual[i] = actual[i] / 10
-
-    sumOfDifferences = 0
-
-    for i in range(len(predictions)):
-        sumOfDifferences += abs(actual[i] - predictions[i])
-
-
-    print("Model used: ", model)
-    print("Predicted attribute: ", predictedAttribute)
-    print("Avg off: ", sumOfDifferences / len(predictions))
 
 buoy = get_buoy_data("44065")
 
@@ -395,35 +337,3 @@ train_model(buoy_mode)
 
 print("Test with interpolation imputation\n")
 train_model(buoy_interpolated)
-
-# lr_w_int = LinearRegression()
-# lr_no_int = LinearRegression(fit_intercept=False)
-# rf = RandomForestRegressor(n_estimators=100)
-
-# modelList = [lr_w_int, lr_no_int, rf]
-# predictAttributesList = ["wave_heigth", "dominant_period"]
-
-# for i in range(len(buoyTup)):
-#     for model in modelList:
-#         for attribute in predictAttributesList:
-#             if i == 0:
-#                 print("Imputation method: Mean")
-#             elif i == 1:
-#                 print("Imputation method: Mode")
-#             elif i == 2:
-#                 print("Imputation method: Interpolation")
-#             else:
-#                 print("Imputation method: Kriging")
-#             predict(buoyTup[i], model, attribute, 0.2)
-
-# i = 0
-# for buoy in buoyTup:
-#     if i == 0:
-#         print("lr_w_int")
-#     elif i == 1:
-#         print("lr_no_int")
-#     else:
-#         print("rf")
-#     i += 1
-#     for model in modelList:
-#         print(handle_analytics(buoy, model))
