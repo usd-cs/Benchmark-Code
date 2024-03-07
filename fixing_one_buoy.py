@@ -65,6 +65,7 @@ def handle_missing_data(buoy):
     print(missing_data)
 
     # dropping rows where average_period is null
+    # TODO: did he say he wanted the target to be dominant period instead?
     buoy.dropna(subset=['average_period'], inplace=True)
 
     # dropping rows wehre wave_height is null
@@ -105,7 +106,8 @@ def handle_missing_data(buoy):
         if column in buoy_interpolated.columns and buoy_interpolated[column].isnull().any():
             buoy_interpolated = buoy_interpolated.drop(column, axis=1)
 
-     
+    print("Buoy Interpolated")
+    display(buoy_interpolated)
 
     # Remove non finite values
     # buoy_mode = buoy_mode[np.isfinite(buoy_mode['wave_height'])]
