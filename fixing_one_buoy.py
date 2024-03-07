@@ -29,12 +29,6 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import ElasticNet
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LinearRegression
-from sklearn.model_selection import KFold, cross_val_score
-from sklearn.metrics import mean_squared_error
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.neighbors import KNeighborsRegressor
 
 #from kriging import kriging
 
@@ -338,4 +332,8 @@ print("Test with mode imputation\n")
 train_model(buoy_mode)
 
 print("Test with interpolation imputation\n")
+<<<<<<< HEAD
 train_model(buoy_interpolated)
+=======
+train_model(buoy_interpolated)
+>>>>>>> f64b400 (Graveyarded)
