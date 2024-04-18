@@ -406,42 +406,42 @@ def calculate_rmse():
 
     # Compare results with actual previous 14 days 
 
-# prompt user for a buoy number
-buoy_num = input("Please enter a buoy number\n")
-buoy = gather_data(buoy_num)
-buoy = buoy.reset_index()
-buoy_mean, buoy_mode, buoy_interpolated = handle_missing_data(buoy)
+def get_predictions():
+    # prompt user for a buoy number
+    buoy_num = input("Please enter a buoy number\n")
+    buoy = gather_data(buoy_num)
+    buoy = buoy.reset_index()
+    buoy_mean, buoy_mode, buoy_interpolated = handle_missing_data(buoy)
 
-# output for only buoy_interpolated
-print("Test with interpolation imputation\n")
-display(buoy_interpolated)
-lr_w_int_preds_df, rf_preds_df, two_week_predictions_linear, two_week_predictions_rf = train_model(buoy_interpolated)
+    # output for only buoy_interpolated
+    print("Test with interpolation imputation\n")
+    display(buoy_interpolated)
+    lr_w_int_preds_df, rf_preds_df, two_week_predictions_linear, two_week_predictions_rf = train_model(buoy_interpolated)
 
-# LINEAR PREDICTIONS   
-start_date = datetime.now()
-end_date = start_date + timedelta(days=14)  # Extend two weeks
-prediction_dates = pd.date_range(start=start_date, end=end_date, freq='H')
+    # LINEAR PREDICTIONS   
+    start_date = datetime.now()
+    end_date = start_date + timedelta(days=14)  # Extend two weeks
+    prediction_dates = pd.date_range(start=start_date, end=end_date, freq='H')
 
-# Convert prediction_dates to a DataFrame
-linear_prediction = pd.DataFrame(prediction_dates, columns=['date'])
-num_predictions = len(linear_prediction)
+    # Convert prediction_dates to a DataFrame
+    linear_prediction = pd.DataFrame(prediction_dates, columns=['date'])
+    num_predictions = len(linear_prediction)
 
-# Merge prediction_dates_df and two_week_predictions_linear_df
-linear_prediction['prediction'] = two_week_predictions_linear[-num_predictions:]
+    # Merge prediction_dates_df and two_week_predictions_linear_df
+    linear_prediction['prediction'] = two_week_predictions_linear[-num_predictions:]
 
-print("\nLinear Predictions\n")
-display(linear_prediction)
+    print("\nLinear Predictions\n")
+    display(linear_prediction)
 
-# RANDOM FOREST PREDICTIONS
+    # RANDOM FOREST PREDICTIONS
 
-# Convert prediction_dates to a DataFrame
-rf_predictions = pd.DataFrame(prediction_dates, columns=['date'])
+    # Convert prediction_dates to a DataFrame
+    rf_predictions = pd.DataFrame(prediction_dates, columns=['date'])
 
-# Merge prediction_dates_df and two_week_predictions_linear_df
-rf_predictions['prediction'] = two_week_predictions_rf[-num_predictions:]
+    # Merge prediction_dates_df and two_week_predictions_linear_df
+    rf_predictions['prediction'] = two_week_predictions_rf[-num_predictions:]
 
-print("\nRandom Forest Predictions\n")
-display(rf_predictions)
+    print("\nRandom Forest Predictions\n")
+    display(rf_predictions)
 
-
-
+    return linear_prediction, rf_predictions
