@@ -1,5 +1,7 @@
 from seebuoy import NDBC
 import pandas as pd
+from datetime import datetime, timedelta
+from prophet import Prophet
 
 def buoySetUp(buoyNum):  
     """
@@ -38,14 +40,49 @@ def buoySetUp(buoyNum):
     return buoy_df
 
 
+def doit(buoy_df, targetVariable):
+    """
+    """
+    buoy_df = buoy_df.reset_index()
+
+    today_date = datetime.today().date()
+
+    trainDate = today_date - timedelta(days=365)
+
+    training_df = buoy_df[buoy_df['date'] > pd.Timestamp(trainDate)]
+
+    #Sets up the modeling df with the date and target variable column as well as the cap for logistic growth prophet algo
+    modeling_df = training_df[["date",f'{targetVariable}_interpolated']]
+    modeling_df = modeling_df.rename(columns={"date": "ds", f'{targetVariable}_interpolated': "y"})
+    cap = modeling_df['y'].max() + 1
+
+    # Initialize Prophet model with the cap
+    model = Prophet(growth="logistic")
+    modeling_df['cap'] = cap
+    model.fit(training_df)
+
+    #Makes prediction
+    future = model.make_future_dataframe(periods=15)
+    future['cap'] = cap
+    forecast = model.predict(future)
+
+    forecast['date'] = forecast['ds']
 
 def main():
 
-    # 
-    buoySetUp('10')
+    # prompting user to enter a port of interest
+    num = 0
+    while not (1<=num and num <=5):
+        print("1 - Booklyn, NY \n2 - New Bedford, MA \n3 - Salem, MA \n4 - Los Angeles, CA \n5 - Santa Barbara, CA")
+        num = int(input("Enter a port of interest (1-5)"))
 
-    
+    # list of valid buoys (based on research)
+    buoy_list = ["44065", "44085", "44013", "46253", "46053"]
+    buoy_df = buoySetUp(buoy_list[num-1])
 
+
+    doit(365, 15, "wave_height", "41064")
+        
 
 if __name__ == "__main__":
     main()
