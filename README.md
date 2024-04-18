@@ -28,5 +28,14 @@ By the end of this project the executable script will prompt the user to enter a
 
 Seebuoy produces a dataframe indexed by date where each column is a paramater measured by the buoys sensors.  We interpolate the missing values and drop any rows where there is not enough data to impute the missing data. These dataframes are used to train the model in predicting our target variables.  These values will be displayed as a time series graph.
 
+### Ports and buoy numbers
+The following lists of cities, states, and buoy numbers that are avalible for prediction locations
+Brooklyn, NY: 44065
+New Bedford, MA: 44085, 44097
+Salem, MA: 44018, 44013 
+Los Angeles, CA: 46253, 46222
+Santa Barbara, CA: 46054, 46053
+
+
 ### Interpreting Results
 
