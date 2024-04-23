@@ -47,7 +47,7 @@ def doit(buoy_df, targetVariable):
 
     today_date = datetime.today().date()
 
-    trainDate = today_date - timedelta(days=365)
+    trainDate = today_date - timedelta(days=730)
 
     training_df = buoy_df[buoy_df['date'] > pd.Timestamp(trainDate)]
 
@@ -59,7 +59,7 @@ def doit(buoy_df, targetVariable):
     # Initialize Prophet model with the cap
     model = Prophet(growth="logistic")
     modeling_df['cap'] = cap
-    model.fit(training_df)
+    model.fit(modeling_df)
 
     #Makes prediction
     future = model.make_future_dataframe(periods=15)
@@ -68,21 +68,41 @@ def doit(buoy_df, targetVariable):
 
     forecast['date'] = forecast['ds']
 
+    return forecast
+
 def main():
-
-    # prompting user to enter a port of interest
-    num = 0
-    while not (1<=num and num <=5):
-        print("1 - Booklyn, NY \n2 - New Bedford, MA \n3 - Salem, MA \n4 - Los Angeles, CA \n5 - Santa Barbara, CA")
-        num = int(input("Enter a port of interest (1-5)"))
-
     # list of valid buoys (based on research)
     buoy_list = ["44065", "44085", "44013", "46253", "46053"]
-    buoy_df = buoySetUp(buoy_list[num-1])
+    variable_list = ['wave_height', 'average_period']
 
+    # prompting user to enter a port of interest
+    location_choice = 0
+    while not (1<=location_choice and location_choice <=5):
+        print("1 - Booklyn, NY \n2 - New Bedford, MA \n3 - Salem, MA \n4 - Los Angeles, CA \n5 - Santa Barbara, CA")
+        location_choice = int(input("Enter a port of interest (1-5): "))
 
-    doit(365, 15, "wave_height", "41064")
-        
+    # prompting user to enter a target variable
+    target_variable_choice = 0
+    while target_variable_choice != 1 and target_variable_choice != 2:
+        print("1 - Wave Height \n2 - Wave Period")
+        target_variable_choice = int(input("Enter prediction choice: "))
+
+    buoy_df = buoySetUp(buoy_list[location_choice-1])
+    target_variable = variable_list[target_variable_choice - 1]
+
+    forecast = doit(buoy_df, target_variable)
+
+    today = pd.Timestamp.today() + timedelta(days=1)
+    future = forecast[forecast['ds'] > today]
+
+    print("{:<30} {:<30} {:<10}".format("Date", f"{variable_list[target_variable_choice - 1]}", "yhat upper / yhat lower"))
+    print()
+    for index, row in future.iterrows():
+        day = datetime.strptime(str(row['ds']), "%Y-%m-%d %H:%M:%S").strftime("%A %B %d")
+        high_low = str(round(row['yhat_lower'],2))+" / "+ str(round(row['yhat_upper'],2))
+        predicted = str(round(row['yhat'],2))
+        print("{:<30} {:<30} {:<10}".format(day, predicted, high_low ))    
+
 
 if __name__ == "__main__":
     main()
