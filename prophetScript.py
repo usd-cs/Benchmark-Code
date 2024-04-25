@@ -90,6 +90,19 @@ def to_html(html):
     with open("output_html.html", "w") as file:
         file.write(html_output)
 
+def to_table(future):
+
+    table = []
+    
+    for index, row in future.iterrows():
+        day = datetime.strptime(str(row['ds']), "%Y-%m-%d %H:%M:%S").strftime("%A %B %d")
+        high_low = str(round(row['yhat_lower'],2))+" / "+ str(round(row['yhat_upper'],2))
+        predicted = str(round(row['yhat'],2))
+        
+        table.append([day, high_low, predicted])
+    
+    return table
+
 def main():
     # list of valid buoys (based on research)
     buoy_list = ["44065", "44085", "44013", "46253", "46053"]
@@ -130,6 +143,8 @@ def main():
         html += "{:<30} {:<30} {:<10}<br />".format(day, predicted, high_low)   
     
     to_html(html)
+
+    table = to_table(future)
 
 
 if __name__ == "__main__":
