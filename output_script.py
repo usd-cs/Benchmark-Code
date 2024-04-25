@@ -511,3 +511,9 @@ def get_predictions():
 
     return (linear_prediction, rf_predictions)
 
+
+def main():
+    get_predictions()
+
+if __name__ == "__main__":
+    main()
