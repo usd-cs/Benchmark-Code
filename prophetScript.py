@@ -40,15 +40,25 @@ def buoySetUp(buoyNum):
     return buoy_df
 
 
-def doit(buoy_df, targetVariable):
+def make_predictions(buoy_df, targetVariable):
     """
+    Parameters:
+    buoy_df: The dataframe of the selected buoy that contains the histroical data of the buoy
+    targetVariable: Either "wave_height" or "average_period", this decides what variable we predict for
+
+    Return:
+    forecast: A dataframe with the forecasted data 15 days in advance
     """
+    #Reset the index of the buoy dataframe
     buoy_df = buoy_df.reset_index()
 
+    #Gets todays date
     today_date = datetime.today().date()
 
+    #Gets the date two years ago today
     trainDate = today_date - timedelta(days=730)
 
+    #Subsets the whole dataframe to be just the last two years of data
     training_df = buoy_df[buoy_df['date'] > pd.Timestamp(trainDate)]
 
     #Sets up the modeling df with the date and target variable column as well as the cap for logistic growth prophet algo
@@ -97,16 +107,18 @@ def main():
         print("1 - Wave Height \n2 - Wave Period")
         target_variable_choice = int(input("Enter prediction choice: "))
 
+    # Calls buoySetUp with the selected buoy dataframe
     buoy_df = buoySetUp(buoy_list[location_choice-1])
     target_variable = variable_list[target_variable_choice - 1]
 
-    forecast = doit(buoy_df, target_variable)
+    #Calls make_predictions
+    forecast = make_predictions(buoy_df, target_variable)
 
+    #Gets tomorrows date and subsets the forecast dataframe to isolate the predictions
     today = pd.Timestamp.today() + timedelta(days=1)
     future = forecast[forecast['ds'] > today]
 
     html = "{:<30} {:<30} {:<10}".format("Date", "Wave Height Forecasted (m)", "yhat upper / yhat lower<br /><br /><br />")
-
     print("{:<30} {:<30} {:<10}".format("Date", "Wave Height Forecasted (m)", "yhat upper / yhat lower"))
     print()
     for index, row in future.iterrows():
