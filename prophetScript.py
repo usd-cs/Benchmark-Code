@@ -70,6 +70,16 @@ def doit(buoy_df, targetVariable):
 
     return forecast
 
+def to_html(html):
+
+    opening = "<!DOCTYPE html><html><head><title>Predictions</title></head><body><h1>Predictions</h1><p>"
+    closing = "</p></body></html>"
+
+    html_output = opening + html + closing
+
+    with open("output_html.html", "w") as file:
+        file.write(html_output)
+
 def main():
     # list of valid buoys (based on research)
     buoy_list = ["44065", "44085", "44013", "46253", "46053"]
@@ -95,13 +105,19 @@ def main():
     today = pd.Timestamp.today() + timedelta(days=1)
     future = forecast[forecast['ds'] > today]
 
-    print("{:<30} {:<30} {:<10}".format("Date", f"{variable_list[target_variable_choice - 1]}", "yhat upper / yhat lower"))
+    html = "{:<30} {:<30} {:<10}".format("Date", "Wave Height Forecasted (m)", "yhat upper / yhat lower<br /><br /><br />")
+
+    print("{:<30} {:<30} {:<10}".format("Date", "Wave Height Forecasted (m)", "yhat upper / yhat lower"))
     print()
     for index, row in future.iterrows():
         day = datetime.strptime(str(row['ds']), "%Y-%m-%d %H:%M:%S").strftime("%A %B %d")
         high_low = str(round(row['yhat_lower'],2))+" / "+ str(round(row['yhat_upper'],2))
         predicted = str(round(row['yhat'],2))
-        print("{:<30} {:<30} {:<10}".format(day, predicted, high_low ))    
+        print("{:<30} {:<30} {:<10}".format(day, predicted, high_low ))
+
+        html += "{:<30} {:<30} {:<10}<br />".format(day, predicted, high_low)   
+    
+    to_html(html)
 
 
 if __name__ == "__main__":
