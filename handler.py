@@ -4,6 +4,8 @@ import pandas as pd
 from datetime import datetime, timedelta
 from prophet import Prophet
 
+###INSTALL pymysql using 'pip install pymysql' before running###
+
 endpoint = 'test-db.c74miacwgycz.us-west-1.rds.amazonaws.com'
 username = 'admin'
 password = 'admin_pw'
