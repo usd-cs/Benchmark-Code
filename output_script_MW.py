@@ -23,6 +23,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import ElasticNet
 from datetime import timedelta, datetime
+# import prophetTesting
 
 def gather_data(buoy_num):
     """
@@ -478,6 +479,11 @@ def graph_daily_error(merged_linear, merged_rf, prediction_type):
     plt.plot(daily_error_linear.index, daily_error_linear["daily_error"], label='Linear Regression')
     
     plt.plot(daily_error_rf.index, daily_error_rf["daily_error"], label='Random Forest')
+
+    # # add Prophet's daily error
+    # df = rse_per_day(720, 15, target_var, buoy_num)
+    # df["difference"] = df['difference'] = df['yhat'] - df[f'{target_var}_interpolated']
+    # df['difference'] = df['difference'].abs()
     
     if prediction_type == "wave_height":
         plt.title('Daily Error Comparison Wave Height')
@@ -487,6 +493,7 @@ def graph_daily_error(merged_linear, merged_rf, prediction_type):
     plt.ylabel('Error')
     plt.legend()
     plt.show()
+
 
 def rmse(y_true, y_pred):
     """
