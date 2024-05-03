@@ -23,7 +23,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import ElasticNet
 from datetime import timedelta, datetime
-# import prophetTesting
+from prophetTesting import *
 
 def gather_data(buoy_num):
     """
@@ -289,6 +289,7 @@ def train_time_series(tscv, data, target_column, date_column, split_dates, num_r
 
 def compute_rmse_std(tuple_list):
     """
+    NOT CURRENTLY IN USE
     Computes the standard deviation of the root mean squared errors
 
     @param tuple_list: List of RMSE scores for each split.
@@ -301,6 +302,7 @@ def compute_rmse_std(tuple_list):
 
 def print_rmse_and_dates(model_rmse, model_split_dates, num_records, model_name):
     """
+    NOT CURRENTLY IN USE
     Prints the RMSE for each of the train test splits
 
     @param model_rmse: List of RMSE scores for each split.
@@ -467,29 +469,52 @@ def calculate_rmse(f, c, target, data, buoy_interpolated):
     return merged_linear, merged_rf
 
 # TODO: MERGE
-def graph_daily_error(merged_linear, merged_rf, prediction_type):
+def calculate_std(predictions):
+    """
+    Calculates the standard deviation of the predictions
+
+    @param predictions: the dataframe of predictions we have
+    """
+    standard_dev = predictions['prediction'].std()
+    return standard_dev
+
+# TODO: MERGE
+def graph_std(target, ):
+    """
+    Graphs the standard deviations of the predictions for
+    all three algorithms for either wave height or wave period
+
+    @param target: the target we're predicting for (average period or wave height)
+    """
+
+
+# TODO: MERGE
+def graph_daily_error(merged_linear, merged_rf, prediction_type, buoy_num):
     """
     Uses the calculated daily error from daily_error() and displays it in graph form
 
+    @param: merged_linear
     @param: prediction_type (wave height or average period)
     """
     daily_error_linear = daily_error(merged_linear["wave_height"].tolist(), merged_linear["prediction"].tolist())
     daily_error_rf = daily_error(merged_rf["wave_height"].tolist(), merged_rf["prediction"].tolist())
 
-    plt.plot(daily_error_linear.index, daily_error_linear["daily_error"], label='Linear Regression')
+    plt.plot(merged_linear.index, daily_error_linear["daily_error"], label='Linear Regression')
     
-    plt.plot(daily_error_rf.index, daily_error_rf["daily_error"], label='Random Forest')
+    plt.plot(merged_rf.index, daily_error_rf["daily_error"], label='Random Forest')
 
-    # # add Prophet's daily error
-    # df = rse_per_day(720, 15, target_var, buoy_num)
-    # df["difference"] = df['difference'] = df['yhat'] - df[f'{target_var}_interpolated']
-    # df['difference'] = df['difference'].abs()
+    # add Prophet's daily error
+    df = rse_per_day(720, 15, prediction_type, buoy_num)
+    df["difference"] = df['difference'] = df['yhat'] - df[f'{prediction_type}_interpolated']
+    df['difference'] = df['difference'].abs()
+
+    plt.plot(df.reset_index().index, df['difference'], label='Prophet')
     
     if prediction_type == "wave_height":
         plt.title('Daily Error Comparison Wave Height')
     elif prediction_type == "average_period":
         plt.title('Daily Error Comparison Average Period')
-    plt.xlabel('Day')
+    plt.xlabel('Date')
     plt.ylabel('Error')
     plt.legend()
     plt.show()
@@ -618,8 +643,8 @@ def get_predictions():
 
     # TODO: MERGE
     ###################### GRAPHING ERROR ######################
-    graph_daily_error(merged_linear_wave_height, merged_rf_wave_height, 'wave_height')
-    graph_daily_error(merged_linear_avg_period, merged_rf_avg_period, 'average_period')
+    graph_daily_error(merged_linear_wave_height, merged_rf_wave_height, 'wave_height', buoy_num)
+    graph_daily_error(merged_linear_avg_period, merged_rf_avg_period, 'average_period', buoy_num)
 
 
     return (linear_prediction, rf_predictions)
