@@ -473,23 +473,33 @@ def calculate_std(predictions):
     """
     Calculates the standard deviation of the predictions
 
-    @param predictions: the dataframe of predictions we have
+    @param predictions: the array of predictions we have
     """
-    standard_dev = predictions['prediction'].std()
+    standard_dev = predictions.std()
     return standard_dev
 
 # TODO: MERGE
-def graph_std(target, ):
+def graph_std(target, prophet_std, linear_std, rf_std):
     """
     Graphs the standard deviations of the predictions for
     all three algorithms for either wave height or wave period
 
     @param target: the target we're predicting for (average period or wave height)
     """
+    # Plotting the bars
+    plt.bar(['Prophet', 'Linear Regression', 'Random Forest'], [prophet_std, linear_std, rf_std])
 
+    if target == "wave_height":
+        plt.title('Standard Deviation of Wave Height Predictions')
+    elif target == "average_period":
+        plt.title('Standard Deviation of Average Period Predictions')
+
+    # Show plot
+    plt.tight_layout()
+    plt.show()
 
 # TODO: MERGE
-def graph_daily_error(merged_linear, merged_rf, prediction_type, buoy_num):
+def graph_daily_error(merged_linear, merged_rf, prediction_type, df):
     """
     Uses the calculated daily error from daily_error() and displays it in graph form
 
@@ -504,7 +514,6 @@ def graph_daily_error(merged_linear, merged_rf, prediction_type, buoy_num):
     plt.plot(merged_rf.index, daily_error_rf["daily_error"], label='Random Forest')
 
     # add Prophet's daily error
-    df = rse_per_day(720, 15, prediction_type, buoy_num)
     df["difference"] = df['difference'] = df['yhat'] - df[f'{prediction_type}_interpolated']
     df['difference'] = df['difference'].abs()
 
@@ -519,6 +528,12 @@ def graph_daily_error(merged_linear, merged_rf, prediction_type, buoy_num):
     plt.legend()
     plt.show()
 
+def predict_prophet(prediction_type, buoy_num):
+    """
+    Calls the prophet model with our given params
+    """
+    df = rse_per_day(720, 15, prediction_type, buoy_num)
+    return df
 
 def rmse(y_true, y_pred):
     """
@@ -643,8 +658,24 @@ def get_predictions():
 
     # TODO: MERGE
     ###################### GRAPHING ERROR ######################
-    graph_daily_error(merged_linear_wave_height, merged_rf_wave_height, 'wave_height', buoy_num)
-    graph_daily_error(merged_linear_avg_period, merged_rf_avg_period, 'average_period', buoy_num)
+    prophet_wave_height = predict_prophet('wave_height', buoy_num)
+    prophet_avg_period = predict_prophet('average_period', buoy_num)
+    graph_daily_error(merged_linear_wave_height, merged_rf_wave_height, 'wave_height', prophet_wave_height)
+    graph_daily_error(merged_linear_avg_period, merged_rf_avg_period, 'average_period', prophet_avg_period)
+
+    ###################### GRAPHING STANDARD DEVIATION ######################
+
+    # wave height std dev
+    linear_std = calculate_std(merged_linear_wave_height['prediction'])
+    rf_std = calculate_std(merged_rf_wave_height['prediction'])
+    prophet_std = calculate_std(prophet_wave_height['yhat'])
+    graph_std('wave_height', prophet_std, linear_std, rf_std)
+
+    # avg period std dev
+    linear_std = calculate_std(merged_linear_avg_period['prediction'])
+    rf_std = calculate_std(merged_rf_avg_period['prediction'])
+    prophet_std = calculate_std(prophet_avg_period['yhat'])
+    graph_std('average_period', prophet_std, linear_std, rf_std)
 
 
     return (linear_prediction, rf_predictions)
