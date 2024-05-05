@@ -23,6 +23,7 @@ from sklearn.neighbors import KNeighborsRegressor
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.linear_model import ElasticNet
 from datetime import timedelta, datetime
+from prophetTesting import *
 
 def gather_data(buoy_num):
     """
@@ -78,17 +79,6 @@ def handle_missing_data(buoy):
         "water_temp"
     ]
 
-    # Replace missing data with mode
-    buoy_mode = buoy.copy()
-    for column in columns_to_fill:
-        if column in buoy_mode:
-            buoy_mode[column] = buoy_mode[column].fillna(buoy_mode[column].mode()[0])
-
-    # Replace missing data with mean
-    buoy_mean = buoy.copy()
-    for column in columns_to_fill:
-        if column in buoy_mean:
-            buoy_mean[column] = buoy_mean[column].fillna(buoy_mean[column].mean())
 
     # Interpolate missing values using spline interpolation
     buoy_interpolated = buoy.copy()
@@ -102,7 +92,7 @@ def handle_missing_data(buoy):
             buoy_interpolated = buoy_interpolated.drop(column, axis=1)
 
     #return (buoy_mean, buoy_mode, buoy_interpolated, buoy_kriging)
-    return (buoy_mean, buoy_mode, buoy_interpolated)
+    return buoy_interpolated
 
 def time_series_split_regression(
     data,
@@ -178,7 +168,7 @@ def time_series_split_regression(
     extended_data = data.iloc[:, :]
     extended_data = pd.concat([extended_data, prediction_dates_df], axis=0)
 
-    buoy_mean, buoy_mode, buoy_interpolated = handle_missing_data(extended_data)
+    buoy_interpolated = handle_missing_data(extended_data)
     
     buoy_interpolated = buoy_interpolated.drop(["date", target_column], axis=1)
     two_week_predictions = regressor.predict(buoy_interpolated)
@@ -392,7 +382,7 @@ def filter_fold(data, fold_num):
     filtered_df = data[data['Fold'] == fold_num]
     return filtered_df
 
-def calculate_rmse(f, c, target, data, buoy_interpolated):
+def calculate_rmse(merged_linear, merged_rf):
     """
     Parameters:
     f : floor value, how many days back to train the model on
@@ -402,10 +392,13 @@ def calculate_rmse(f, c, target, data, buoy_interpolated):
 
     target : either "wave_height" or "average_period". Variable we want to traiun and predict on.
     """
-    if target != "wave_height" and target != "average_period":
-        print("Not a valid target variable")
-        return
 
+    rmse_linear = rmse(merged_linear["wave_height"].tolist(), merged_linear["prediction"].tolist())
+    rmse_rf = rmse(merged_rf["wave_height"].tolist(), merged_rf["prediction"].tolist())
+
+    return rmse_linear, rmse_rf
+
+def predict(f, c, target, data, buoy_interpolated):
     # Sets up date objects and floor and ceiling
     today_date = datetime.today().date()
     floor = f + c
@@ -455,10 +448,7 @@ def calculate_rmse(f, c, target, data, buoy_interpolated):
     # Merge rf_predictions and recent_df using merge_asof
     merged_rf = pd.merge_asof(rf_predictions, recent_df, on='date', direction='nearest')
 
-    rmse_linear = rmse(merged_linear["wave_height"].tolist(), merged_linear["prediction"].tolist())
-    rmse_rf = rmse(merged_rf["wave_height"].tolist(), merged_rf["prediction"].tolist())
-
-    print(f"LINEAR WAVE HEIGHT RMSE: {rmse_linear} \n RF WAVE HEIGHT RMSE: {rmse_rf}")
+    return merged_linear, merged_rf
 
 def rmse(y_true, y_pred):
     """
@@ -477,82 +467,164 @@ def rmse(y_true, y_pred):
     """
     return np.sqrt(np.mean((np.array(y_true) - np.array(y_pred)) ** 2))
 
-def get_predictions():
+def to_table(future):
+
+    table = []
+    
+    for index, row in future.iterrows():
+        day = datetime.strptime(str(row['date']), "%Y-%m-%d %H:%M:%S").strftime("%A %B %d")
+        predicted = str(round(row['prediction'],2))
+        
+        table.append([day, predicted])
+    
+    return table
+
+def calculate_std(predictions):
+    """
+    Calculates the standard deviation of the predictions
+
+    @param predictions: the array of predictions we have
+    """
+    standard_dev = predictions.std()
+    return standard_dev
+
+
+def graph_std(target, prophet_std, linear_std, rf_std):
+    """
+    Graphs the standard deviations of the predictions for
+    all three algorithms for either wave height or wave period
+
+    @param target: the target we're predicting for (average period or wave height)
+    """
+    # Plotting the bars
+    plt.bar(['Prophet', 'Linear Regression', 'Random Forest'], [prophet_std, linear_std, rf_std])
+
+    if target == "wave_height":
+        plt.title('Standard Deviation of Wave Height Predictions')
+    elif target == "average_period":
+        plt.title('Standard Deviation of Average Period Predictions')
+
+    # Show plot
+    plt.tight_layout()
+    plt.show()
+
+
+def graph_daily_error(merged_linear, merged_rf, prediction_type, df):
+    """
+    Uses the calculated daily error from daily_error() and displays it in graph form
+
+    @param: merged_linear
+    @param: prediction_type (wave height or average period)
+    """
+    daily_error_linear = daily_error(merged_linear["wave_height"].tolist(), merged_linear["prediction"].tolist())
+    daily_error_rf = daily_error(merged_rf["wave_height"].tolist(), merged_rf["prediction"].tolist())
+
+    plt.plot(merged_linear.index, daily_error_linear["daily_error"], label='Linear Regression')
+    
+    plt.plot(merged_rf.index, daily_error_rf["daily_error"], label='Random Forest')
+
+    # add Prophet's daily error
+    df["difference"] = df['difference'] = df['yhat'] - df[f'{prediction_type}_interpolated']
+    df['difference'] = df['difference'].abs()
+
+    plt.plot(df.reset_index().index, df['difference'], label='Prophet')
+    
+    if prediction_type == "wave_height":
+        plt.title('Daily Error Comparison Wave Height')
+    elif prediction_type == "average_period":
+        plt.title('Daily Error Comparison Average Period')
+    plt.xlabel('Date')
+    plt.ylabel('Error')
+    plt.legend()
+    plt.show()
+
+def predict_prophet(prediction_type, buoy_num):
+    """
+    Calls the prophet model with our given params
+    """
+    df = rse_per_day(720, 15, prediction_type, buoy_num)
+    return df
+
+
+def daily_error(y_true, y_pred):
+    """
+    Compute Daily Error.
+
+    Parameters:
+        y_true : array-like of shape (n_samples,)
+        Ground truth (correct) target values.
+        
+    y_pred : array-like of shape (n_samples,)
+        Estimated target values.
+
+    Returns:
+        dataframe of y_true, y_pred, and daily error
+    """
+    # Check if lengths of y_true and y_pred are equal
+    if len(y_true) != len(y_pred):
+        raise ValueError("Lengths of y_true and y_pred must be equal.")
+
+    # Calculate residuals
+    daily_error = abs(np.array(y_true) - np.array(y_pred))
+    
+    # Create DataFrame
+    df = pd.DataFrame({'y_true': y_true, 'y_pred': y_pred, 'daily_error': daily_error})
+    
+    return df
+
+
+def main():
     """
     Predict wave_height and average_period 2 weeks in advance
     """
-    # prompt user for a buoy number
-    buoy_num = input("Please enter a buoy number\n")
-    buoy = gather_data(buoy_num)
+
+    variable_list = ['wave_height', 'average_period']
+    buoy_num = "44091"
+
+    # # prompting user to enter a target variable
+    # target_variable_choice = 0
+    # while target_variable_choice != 1 and target_variable_choice != 2:
+    #     print("1 - Wave Height \n2 - Wave Period")
+    #     target_variable_choice = int(input("Enter prediction choice: "))
+
+
+    buoy = gather_data(buoy_num) #gather_data(buoy_list[location_choice-1])
     buoy = buoy.reset_index()
+    target_variable = variable_list[target_variable_choice - 1]
 
-    buoy_mean, buoy_mode, buoy_interpolated = handle_missing_data(buoy)
+    buoy_cleaned = handle_missing_data(buoy)
 
-    ###################### PREDICTIONS FOR WAVE HEIGHT ######################
+    period_linear, period_rf = predict(45, 14, "average_period", buoy, buoy_cleaned)
+    rmse_linear, rmse_rf = calculate_rmse(period_linear, period_rf)
+    print(f"LINEAR AVERAGE PERIOD RMSE: {rmse_linear} \nRF AVERAGE PERIOD RMSE: {rmse_rf}\n")
+    table_period = to_table(period_linear) # GABE YOU CAN USE WHATEVER VARIABLE HERE TO CREATE A TABLE. 
 
-    # output for only buoy_interpolated
-    lr_w_int_preds_df, rf_preds_df, two_week_predictions_linear, two_week_predictions_rf = train_model(buoy_interpolated, "wave_height")
+    height_linear, height_rf = predict(45, 14, "wave_height", buoy, buoy_cleaned)
+    rmse_linear, rmse_rf = calculate_rmse(height_linear, height_rf)
+    print(f"LINEAR WAVE HEIGHT RMSE: {rmse_linear} \nRF WAVE HEIGHT RMSE: {rmse_rf}\n")
+    table_height = to_table(height_linear) # GABE YOU CAN USE WHATEVER VARIABLE HERE TO CREATE A TABLE.
 
-    # LINEAR PREDICTIONS   
-    start_date = datetime.now()
-    end_date = start_date + timedelta(days=14)  # Extend two weeks
-    prediction_dates = pd.date_range(start=start_date, end=end_date, freq='D').strftime('%Y-%m-%d %H:%M:%S')
+    ###################### GRAPHING ERROR ######################
+    prophet_wave_height = predict_prophet('wave_height', buoy_num)
+    prophet_avg_period = predict_prophet('average_period', buoy_num)
+    graph_daily_error(height_linear, height_rf, 'wave_height', prophet_wave_height)
+    graph_daily_error(period_linear, period_rf, 'average_period', prophet_avg_period) 
 
-    # Convert prediction_dates to a DataFrame
-    linear_prediction = pd.DataFrame(prediction_dates, columns=['date'])
-    num_predictions = len(linear_prediction)
-    
-    # Merge prediction_dates_df and two_week_predictions_linear_df
-    linear_prediction['prediction'] = two_week_predictions_linear[-num_predictions:]
+    ###################### GRAPHING STANDARD DEVIATION ######################
 
-    print("\nLinear Wave Height Predictions\n")
-    display(linear_prediction)
+    # wave height std dev
+    linear_std = calculate_std(height_linear['prediction'])
+    rf_std = calculate_std(height_rf['prediction'])
+    prophet_std = calculate_std(prophet_wave_height['yhat'])
+    graph_std('wave_height', prophet_std, linear_std, rf_std)
 
-    # RANDOM FOREST PREDICTIONS
-    # Convert prediction_dates to a DataFrame
-    rf_predictions = pd.DataFrame(prediction_dates, columns=['date'])
+    # avg period std dev
+    linear_std = calculate_std(period_linear['prediction'])
+    rf_std = calculate_std(period_rf['prediction'])
+    prophet_std = calculate_std(prophet_avg_period['yhat'])
+    graph_std('average_period', prophet_std, linear_std, rf_std)
 
-    # Merge prediction_dates_df and two_week_predictions_linear_df
-    rf_predictions['prediction'] = two_week_predictions_rf[-num_predictions:]
 
-    print("\nRandom Forest Wave Height Predictions\n")
-    display(rf_predictions)
 
-    # CALCULATE ERROR 
-    calculate_rmse(45, 14, "wave_height", buoy, buoy_interpolated)
-
-    ###################### PREDICTIONS FOR AVERAGE PERIOD ######################
-    
-    # output for only buoy_interpolated
-    lr_w_int_preds_df, rf_preds_df, two_week_predictions_linear, two_week_predictions_rf = train_model(buoy_interpolated, "average_period")
-
-    # LINEAR PREDICTIONS   
-    start_date = datetime.now()
-    end_date = start_date + timedelta(days=14)  # Extend two weeks
-    prediction_dates = pd.date_range(start=start_date, end=end_date, freq='D').strftime('%Y-%m-%d %H:%M:%S')
-
-    # Convert prediction_dates to a DataFrame
-    linear_prediction = pd.DataFrame(prediction_dates, columns=['date'])
-    num_predictions = len(linear_prediction)
-    
-    # Merge prediction_dates_df and two_week_predictions_linear_df
-    linear_prediction['prediction'] = two_week_predictions_linear[-num_predictions:]
-
-    print("\nLinear Average Period Predictions\n")
-    display(linear_prediction)
-
-    # RANDOM FOREST PREDICTIONS
-    # Convert prediction_dates to a DataFrame
-    rf_predictions = pd.DataFrame(prediction_dates, columns=['date'])
-
-    # Merge prediction_dates_df and two_week_predictions_linear_df
-    rf_predictions['prediction'] = two_week_predictions_rf[-num_predictions:]
-
-    print("\nRandom Forest Average Period Predictions\n")
-    display(rf_predictions)
-
-    # CALCULATE ERROR 
-    calculate_rmse(45, 14, "average_period", buoy, buoy_interpolated)
-    return (linear_prediction, rf_predictions)
-
-get_predictions()
+if __name__ == "__main__":
+    main()
