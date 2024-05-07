@@ -4,8 +4,6 @@ import pandas as pd
 from datetime import datetime, timedelta
 from prophet import Prophet
 
-###INSTALL pymysql using 'pip install pymysql' before running###
-
 endpoint = 'test-db.c74miacwgycz.us-west-1.rds.amazonaws.com'
 username = 'admin'
 password = 'admin_pw'
@@ -95,7 +93,7 @@ def to_table(future):
     table = []
     
     for index, row in future.iterrows():
-        day = datetime.strptime(str(row['ds']), "%Y-%m-%d %H:%M:%S").strftime("%A %B %d")
+        day = datetime.strptime(str(row['ds']), "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d")
         high_low = str(round(row['yhat_lower'],2))+" / "+ str(round(row['yhat_upper'],2))
         predicted = str(round(row['yhat'],2))
         
@@ -104,43 +102,41 @@ def to_table(future):
     return table
 
 def main():
+    print("starting")
     # list of valid buoys (based on research)
     buoy_list = ["44065", "44085", "44013", "46253", "46053"]
     variable_list = ['wave_height', 'average_period']
-
-    # prompting user to enter a port of interest
-    location_choice = 0
-    while not (1<=location_choice and location_choice <=5):
-        print("1 - Booklyn, NY \n2 - New Bedford, MA \n3 - Salem, MA \n4 - Los Angeles, CA \n5 - Santa Barbara, CA")
-        location_choice = int(input("Enter a port of interest (1-5): "))
-
-    # prompting user to enter a target variable
-    target_variable_choice = 0
-    while target_variable_choice != 1 and target_variable_choice != 2:
-        print("1 - Wave Height \n2 - Wave Period")
-        target_variable_choice = int(input("Enter prediction choice: "))
-
-    # Calls buoySetUp with the selected buoy dataframe
-    buoy_df = buoySetUp(buoy_list[location_choice-1])
-    target_variable = variable_list[target_variable_choice - 1]
-
-    #Calls make_predictions
-    forecast = make_predictions(buoy_df, target_variable)
-
-    #Gets tomorrows date and subsets the forecast dataframe to isolate the predictions
-    today = pd.Timestamp.today() + timedelta(days=1)
-    future = forecast[forecast['ds'] > today]
-    
-    table = to_table(future)
-
     cursor = connection.cursor()
-    cursor.execute("DELETE from Predictions")
+    tables = ["Predictions", "New_bedford", "Salem", "La", "Santa_barbara"]
 
-    for row in table:
-        query = f"INSERT INTO Predictions (Dt, Wave_ht, Wave_pd, Y_hat) VALUES ('{row[0]}', '{row[1]}', '{row[2]}', '1')"
-        cursor.execute(query)
+    for i in range(5):
+        # Calls buoySetUp with the selected buoy dataframe
+        buoy_df = buoySetUp(buoy_list[i])
+        
+        #Calls make_predictions
+        forecast = make_predictions(buoy_df, variable_list[0])
+        forecast2 = make_predictions(buoy_df, variable_list[1])
 
-    connection.commit()
+        #Gets tomorrows date and subsets the forecast dataframe to isolate the predictions
+        today = pd.Timestamp.today() + timedelta(days=1)
+        future = forecast[forecast['ds'] > today]
+        future2 = forecast2[forecast2['ds'] > today]
+
+        table = to_table(future)
+        table2 = to_table(future2)
+
+        for j in range(0, len(table)):
+            table[j].append(table2[j][1])
+            table[j].append(table2[j][2])
+            
+        delete_line = f"DELETE from {tables[i]}"  
+        cursor.execute(delete_line)
+
+        for row in table:
+            query = f"INSERT INTO {tables[i]} (Dt, Wave_ht, Wave_y_hat, Wave_per, Per_y_hat) VALUES ('{row[0]}', '{row[2]}', '{row[1]}', '{row[4]}', '{row[3]}')"
+            cursor.execute(query)
+
+        connection.commit()
 
 if __name__ == "__main__":
     main()
