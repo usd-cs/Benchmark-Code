@@ -582,10 +582,10 @@ def main():
     buoy_num = "44091"
 
     # # prompting user to enter a target variable
-    # target_variable_choice = 0
-    # while target_variable_choice != 1 and target_variable_choice != 2:
-    #     print("1 - Wave Height \n2 - Wave Period")
-    #     target_variable_choice = int(input("Enter prediction choice: "))
+    target_variable_choice = 0
+    while target_variable_choice != 1 and target_variable_choice != 2:
+        print("1 - Wave Height \n2 - Wave Period")
+        target_variable_choice = int(input("Enter prediction choice: "))
 
 
     buoy = gather_data(buoy_num) #gather_data(buoy_list[location_choice-1])
