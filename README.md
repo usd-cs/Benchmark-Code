@@ -12,12 +12,8 @@ For this project we are injesting [NDBC](https://www.ndbc.noaa.gov/) data using 
 ### Exploration and Preprocessing
 We decided to use the data outputted by a single buoy that is closest to the given coordinate.  There is no standard interval for buoy output and there are inconsistencies among buoys that result in missing data, or no data collected for certain measurements at all.  We use an interpolation method to impute the missing data.
 
-#### Current exploration: 
-* Comparing the performance of different prediction algorithms (linear regression, Facebook's [Prophet](https://facebook.github.io/prophet/), and the forecasting predicition model [ARIMA](https://www.statsmodels.org/stable/generated/statsmodels.tsa.arima.model.ARIMA.html).
-* How much historical data to train the chosen model on (ex. 45 days, 1 year, 8 years etc.)
-
 ### AWS
-Our goal is to integrate the continuous ingestion of data into the prediction model using seebuoy, OR to use seebuoy to produce real time data on demand to make a prediction.  These predictions should be produced for any given location up to 15 days into the future.
+We integrated the predicted values of all three models using seebuoy, OR to use seebuoy to produce real time data on demand to make a prediction.  These predictions should be produced for any given location up to 15 days into the future.
 
 ### Install
 * Check [requirements.txt]()
