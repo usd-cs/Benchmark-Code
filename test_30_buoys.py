@@ -29,8 +29,6 @@ def test_30_buoys():
     for buoy_num in buoys:
         buoy = gather_data(str(buoy_num)) 
 
-        display(buoy)
-
         buoy = buoy.reset_index()
 
         buoy_cleaned = handle_missing_data(buoy)
