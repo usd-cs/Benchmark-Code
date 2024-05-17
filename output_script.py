@@ -27,8 +27,9 @@ from prophet_rse import *
 
 def gather_data(buoy_num):
     """
-    Imports data from the National Data Buoy Center
+    Imports data from the National Data Buoy Center (NOAA)
     @param buoy_num: the buoy number of the closest x,y coordinates
+    @return see_buoy: the buoy data in a dataframe
     """
     ndbc = NDBC()
     
@@ -45,11 +46,11 @@ def gather_data(buoy_num):
 
 def handle_missing_data(buoy):
     """
-    The data has some missing values. We impute these values by mode, mean, and interpolation.
+    The data has some missing values. We impute these values with interpolation.
 
     @param buoy: the data imported from Seebuoy
-    @return: a tuple containing the buoy imputed with mean, mode, and interpolation 
-    (buoy_mean, buoy_mode, buoy_interpolated)
+    @return buoy_interpolated: a dataframe of buoy data where we impute the missing values
+    with interpolation
     """
     # missing data
     total = buoy.isnull().sum().sort_values(ascending=False)
@@ -91,7 +92,6 @@ def handle_missing_data(buoy):
         if column in buoy_interpolated.columns and buoy_interpolated[column].isnull().any():
             buoy_interpolated = buoy_interpolated.drop(column, axis=1)
 
-    #return (buoy_mean, buoy_mode, buoy_interpolated, buoy_kriging)
     return buoy_interpolated
 
 def time_series_split_regression(
@@ -127,6 +127,7 @@ def time_series_split_regression(
         List of (min_date, max_date) tuples for each split.
     - num_records: list of tuples
         List of (train_size, test_size) tuples for each split.
+    - two_week_predictions: dataframe containing the predictions for the target two weeks into the future.
     """
 
     # Sort the DataFrame based on the date column
@@ -296,6 +297,8 @@ def print_rmse_and_dates(model_rmse, model_split_dates, num_records, model_name)
     @param model_split_dates: List of (min_date, max_date) tuples for each split.
     @param num_records: List of (train_size, test_size) tuples for each split.
     @model_name: a string indicating the name of the model
+
+    @return: none
     """
     # Print RMSE scores and split dates for each split
     for i, (rmse, dates, records) in enumerate(
@@ -318,10 +321,16 @@ def print_rmse_and_dates(model_rmse, model_split_dates, num_records, model_name)
 def train_model(buoy, target):
     """
     Train the model for linear regression and random forest
-    @param ny_buoy: the data we're training on
-    @param target: str the thing we're trying to predict (either
+    Parameters:
+    - buoy: the data we're training on
+    - target: str the thing we're trying to predict (either
     wave_height or average_period)
-    @return
+
+    Returns:
+    - lr_w_int_preds_df: linear regression with intercept results containing the columns: "date", "Actual", "Predicted", "Fold", "Set"
+    - rf_preds_df: random forest with intercept results containing the columns: "date", "Actual", "Predicted", "Fold", "Set"
+    - two_week_predictions_linear: the two week forecast for linear regression
+    - two_week_predictions_rf: the two week forecast for random forest
     """
 
     ##################### LINEAR REGRESSION MODELS ###############
@@ -342,8 +351,6 @@ def train_model(buoy, target):
         regressor=lr_w_int,
         target_column=target
     )
-    # Print RMSE scores and split dates for each split
-    #print_rmse_and_dates(lr_w_int_rmse, lr_w_int_split_dates, num_records, "Linear Regression (w/ Intercept)")
 
     ###################### RANDOM FOREST MODEL ##################
     rf = RandomForestRegressor(n_estimators=100)
@@ -352,7 +359,6 @@ def train_model(buoy, target):
         buoy,
         regressor=rf,
     )
-    #print_rmse_and_dates(rf_rmse, rf_split_dates, num_records, "Random Forest")
 
     return lr_w_int_preds_df, rf_preds_df, two_week_predictions_linear, two_week_predictions_rf
 
@@ -360,6 +366,7 @@ def display_results(predictions):
     """
     Show a line plot with the trained data, real data, and predictions
     @param: predictions, a dataframe of predictions
+    @return: none
     """
     plt.figure(figsize=(16,8))
     plt.plot(predictions["date"], predictions['Predicted'], color='green', label = 'Predicted Wave Height')
@@ -384,11 +391,12 @@ def filter_fold(data, fold_num):
 
 def calculate_rmse(merged_linear, merged_rf):
     """
+    Calculates the root mean squared error of the linear regression
+    predictions and random forest predictions
+
     Parameters:
-    f : floor value, how many days back to train the model on
-    c : ceiling value, how many days we want to predict for (want 10-15 days)
-    data: the actual data from ndbc
-    buoy_interpolated: cleaned data
+    merged_linear:
+    merged_rf:
 
     target : either "wave_height" or "average_period". Variable we want to traiun and predict on.
     """
@@ -399,6 +407,22 @@ def calculate_rmse(merged_linear, merged_rf):
     return rmse_linear, rmse_rf
 
 def predict(f, c, target, data, buoy_interpolated):
+    """
+    Returns predictions using random forest regression and linear regression.
+    This function is for testing the accuracy of our model. It lags the data 
+    so we can calculate the daily error for the past two weeks.
+
+    Parameters:
+    - f: the number of days we used to train (ex: 45 days)
+    - c: the number of days we are forecasting (ex: 14 days)
+    - target: the thing we're trying to predict (average period or wave height)
+    - data: dataframe of not cleaned data
+    - buoy_interpolated: dataframe of cleaned data
+
+    Returns:
+    - merged_linear: dataframe of linear regression predictions and the recent 14 days of data (predictions and actual data)
+    - merged_rf: dataframe of random forest predictions and the recent 14 days of data
+    """
     # Sets up date objects and floor and ceiling
     today_date = datetime.today().date()
     floor = f + c
