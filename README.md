@@ -9,14 +9,6 @@ Diana Montoya-Herrera (dmontoyaherrera@sandiego.edu)<br>
 Gabriel Seidel (gseidel@sandiego.edu)<br>
 Madeleine Woo (madeleinewoo@sandiego.edu)<br>
 
-## Contents
-[Preprocessing](#headers)<br>
-[Prediction methods](#headers)<br>
-[Ports and buoy numbers](#headers)<br>
-[AWS](#headers)<br>
-[Install](#headers)<br>
-[Interpreting Results and Prediction Accuracy](#headers)<br>
-
 ### Preprocessing
 We decided to use the data outputted by a single buoy that is closest to the given coordinate.  There is no standard time interval for buoy output and there are inconsistencies among buoys that result in missing data.  We use an interpolation method to impute the missing data and standardize the data frames returned by each buoy.
 
