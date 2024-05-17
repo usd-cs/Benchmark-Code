@@ -492,7 +492,12 @@ def rmse(y_true, y_pred):
     return np.sqrt(np.mean((np.array(y_true) - np.array(y_pred)) ** 2))
 
 def to_table(future):
+    """
+    Create a table of predictions with corresponding day and time
 
+    @param future: the dataframe of predicted and actual values for the future
+    @return table of predictions with corresponding day and time
+    """
     table = []
     
     for index, row in future.iterrows():
@@ -508,6 +513,7 @@ def calculate_std(predictions):
     Calculates the standard deviation of the predictions
 
     @param predictions: the array of predictions we have
+    @return standard_dev: the standard deviation of the predictions
     """
     standard_dev = predictions.std()
     return standard_dev
@@ -519,6 +525,11 @@ def graph_std(target, prophet_std, linear_std, rf_std):
     all three algorithms for either wave height or wave period
 
     @param target: the target we're predicting for (average period or wave height)
+    @param prophet_std: Prophet algorithm's standard deviation
+    @param linear_std: the linear standard deviation
+    @param rf_std: random forest standard deviation
+
+    @return: none
     """
     # Plotting the bars
     plt.bar(['Prophet', 'Linear Regression', 'Random Forest'], [prophet_std, linear_std, rf_std])
@@ -539,6 +550,8 @@ def graph_daily_error(merged_linear, merged_rf, prediction_type, df):
 
     @param: merged_linear
     @param: prediction_type (wave height or average period)
+
+    @return: none
     """
     daily_error_linear = daily_error(merged_linear["wave_height"].tolist(), merged_linear["prediction"].tolist())
     daily_error_rf = daily_error(merged_rf["wave_height"].tolist(), merged_rf["prediction"].tolist())
@@ -564,7 +577,13 @@ def graph_daily_error(merged_linear, merged_rf, prediction_type, df):
 
 def predict_prophet(prediction_type, buoy_num):
     """
-    Calls the prophet model with our given params
+    Calls the prophet model with our given params. 
+    rse_per_day() comes from the prophet_rse script.
+
+    @param prediction_type: the target variable we're predicting for
+    @param buoy_num: buoy number to predict for
+
+    @return: the dataframe of predicted values using prophet
     """
     df = rse_per_day(720, 15, prediction_type, buoy_num)
     return df
@@ -621,12 +640,12 @@ def main():
     period_linear, period_rf = predict(45, 14, "average_period", buoy, buoy_cleaned)
     rmse_linear, rmse_rf = calculate_rmse(period_linear, period_rf)
     print(f"LINEAR AVERAGE PERIOD RMSE: {rmse_linear} \nRF AVERAGE PERIOD RMSE: {rmse_rf}\n")
-    table_period = to_table(period_linear) # GABE YOU CAN USE WHATEVER VARIABLE HERE TO CREATE A TABLE. 
+    table_period = to_table(period_linear) 
 
     height_linear, height_rf = predict(45, 14, "wave_height", buoy, buoy_cleaned)
     rmse_linear, rmse_rf = calculate_rmse(height_linear, height_rf)
     print(f"LINEAR WAVE HEIGHT RMSE: {rmse_linear} \nRF WAVE HEIGHT RMSE: {rmse_rf}\n")
-    table_height = to_table(height_linear) # GABE YOU CAN USE WHATEVER VARIABLE HERE TO CREATE A TABLE.
+    table_height = to_table(height_linear) 
 
     ###################### GRAPHING ERROR ######################
     prophet_wave_height = predict_prophet('wave_height', buoy_num)
