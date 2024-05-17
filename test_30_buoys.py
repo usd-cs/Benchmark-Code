@@ -7,11 +7,14 @@ The output is a graph of the average daily error for all three models.
 """
 
 def test_30_buoys():
-    buoys = [44091, 44089, 44100] # list of compatible buoys
+    buoys = [44091, 44089, 44100, 44086, 41117, 42036,
+    46232, 46047, 46219, 46251, 46221, 46268, 46222, 46253, 46224, 46275,
+    46277, 46256, 46274, 46225, 46266, 46014, 46013, 46214, 46026, 46237,
+    46239, 46011, 46218, 46054, 46053] # list of compatible buoys
 
     # create an empty dataframe to track the daily error for all three models
     # Define the number of rows and column names
-    num_rows = 12
+    num_rows = 14
     column_names = ["linear regression", "random forest", "prophet"]
 
     # Create an empty DataFrame with float values for wave height

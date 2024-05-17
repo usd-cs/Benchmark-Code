@@ -661,8 +661,6 @@ def main():
 
     buoy = gather_data(buoy_num) 
 
-    display(buoy)
-
     buoy = buoy.reset_index()
     target_variable = variable_list[target_variable_choice - 1]
 
