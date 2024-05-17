@@ -161,10 +161,24 @@ def time_series_split_regression(
     prediction_dates_df = pd.DataFrame(prediction_dates, columns=["date"])
 
     # Add additional columns with empty values
+    # prediction_dates_df["wind_speed"] = pd.NA
+    # prediction_dates_df["wind_gust"] = pd.NA
+    # prediction_dates_df["mean_wave_direction"] = pd.NA
+    # prediction_dates_df["water_temp"] = pd.NA
+    
+    prediction_dates_df["wind_direction"] = pd.NA
     prediction_dates_df["wind_speed"] = pd.NA
     prediction_dates_df["wind_gust"] = pd.NA
+    prediction_dates_df["dominant_period"] = pd.NA
     prediction_dates_df["mean_wave_direction"] = pd.NA
+    prediction_dates_df["pressure"] = pd.NA
+    prediction_dates_df["air_temp"] = pd.NA
     prediction_dates_df["water_temp"] = pd.NA
+    prediction_dates_df["dewpoint"] = pd.NA
+    prediction_dates_df["visibility"] = pd.NA
+    prediction_dates_df["pressure_tendency"] = pd.NA
+    prediction_dates_df["tide"] = pd.NA
+
     if target_column == "wave_height":
         prediction_dates_df["average_period"] = pd.NA
     elif target_column == "average_period":
@@ -558,8 +572,12 @@ def graph_daily_error(merged_linear, merged_rf, prediction_type, df):
 
     @return: none
     """
-    daily_error_linear = daily_error(merged_linear["wave_height"].tolist(), merged_linear["prediction"].tolist())
-    daily_error_rf = daily_error(merged_rf["wave_height"].tolist(), merged_rf["prediction"].tolist())
+    if prediction_type == "wave_height":
+        daily_error_linear = daily_error(merged_linear["wave_height"].tolist(), merged_linear["prediction"].tolist())
+        daily_error_rf = daily_error(merged_rf["wave_height"].tolist(), merged_rf["prediction"].tolist())
+    elif prediction_type == "average_period":
+        daily_error_linear = daily_error(merged_linear["average_period"].tolist(), merged_linear["prediction"].tolist())
+        daily_error_rf = daily_error(merged_rf["average_period"].tolist(), merged_rf["prediction"].tolist())       
 
     plt.plot(merged_linear.index, daily_error_linear["daily_error"], label='Linear Regression')
     
@@ -629,8 +647,10 @@ def main():
     variable_list = ['wave_height', 'average_period']
 
     # buoys that are compatible: 44091, 44089, 44100, 44086, 41117, 42036,
-    # 46232, 46047
-    buoy_num = "46047"
+    # 46232, 46047, 46219, 46251, 46221, 46268, 46222, 46253, 46224, 46275,
+    # 46277, 46256, 46274, 46225, 46266, 46014, 46013, 46214, 46026, 46237,
+    # 46239, 46011, 46218, 46054, 46053
+    buoy_num = "44091"
 
     # # prompting user to enter a target variable
     target_variable_choice = 0
