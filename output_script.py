@@ -71,13 +71,18 @@ def handle_missing_data(buoy):
     # IMPUTATIONS
 
     columns_to_fill = [
+        "wind_direction",
         "wind_speed",
         "wind_gust",
         "dominant_period",
         "mean_wave_direction",
         "pressure",
+        "air_temp",
+        "water_temp",
+        "dewpoint",
+        "visibility",
         "pressure_tendency",
-        "water_temp"
+        "tide"
     ]
 
 
@@ -570,8 +575,8 @@ def graph_daily_error(merged_linear, merged_rf, prediction_type, df):
         plt.title('Daily Error Comparison Wave Height')
     elif prediction_type == "average_period":
         plt.title('Daily Error Comparison Average Period')
-    plt.xlabel('Date')
-    plt.ylabel('Error')
+    plt.xlabel('Day')
+    plt.ylabel('Error (meters for wave height and seconds for average period)')
     plt.legend()
     plt.show()
 
@@ -622,7 +627,10 @@ def main():
     """
 
     variable_list = ['wave_height', 'average_period']
-    buoy_num = "44091"
+
+    # buoys that are compatible: 44091, 44089, 44100, 44086, 41117, 42036,
+    # 46232, 46047
+    buoy_num = "46047"
 
     # # prompting user to enter a target variable
     target_variable_choice = 0
@@ -631,7 +639,10 @@ def main():
         target_variable_choice = int(input("Enter prediction choice: "))
 
 
-    buoy = gather_data(buoy_num) #gather_data(buoy_list[location_choice-1])
+    buoy = gather_data(buoy_num) 
+
+    display(buoy)
+
     buoy = buoy.reset_index()
     target_variable = variable_list[target_variable_choice - 1]
 

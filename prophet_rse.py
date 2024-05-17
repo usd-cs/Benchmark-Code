@@ -51,11 +51,19 @@ def rmse(y_true, y_pred):
 
 def buoySetUp(buoyNum):  
     ndbc = NDBC(timeframe="historical")
-    df_avail = ndbc.available_data(station_id=buoyNum)
+    df_avail = ndbc.available_data()
     df_data = ndbc.get_data(buoyNum)
         
-    df_data.dropna(axis=1, how='all', inplace=True)
     df_data = df_data.reset_index()
+
+    # dropping rows where average_period is null
+    df_data.dropna(subset=['average_period'], inplace=True)
+
+    # dropping rows wehre wave_height is null
+    df_data.dropna(subset=['wave_height'], inplace=True)
+
+    # dropping cols where there is 100% NA
+    df_data.dropna(axis=1, how='all', inplace=True)
 
     if 'wave_height' not in df_data.columns or 'average_period' not in df_data.columns:
         print("Not enough data")
