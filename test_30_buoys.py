@@ -7,6 +7,13 @@ The output is a graph of the average daily error for all three models.
 """
 
 def test_30_buoys():
+    """
+    The main function that runs all three models for 31 buoys and graphs the average
+    daily error to compare which one is best.
+
+    @param: none
+    @return: none
+    """
     buoys = [44091, 44089, 44100, 44086, 41117, 42036,
     46232, 46047, 46219, 46251, 46221, 46268, 46222, 46253, 46224, 46275,
     46277, 46256, 46274, 46225, 46266, 46014, 46013, 46214, 46026, 46237,
@@ -77,6 +84,7 @@ def plot_avg_error(target, avg_derror):
     plots the average daily error for 30+ buoys
     @param target: the target value we're predicting for (wave height or average period)
     @param avg_derror: dataframe of the average daily error for each model
+    @return: none
     """
     plt.plot(avg_derror.index, avg_derror["linear regression"], label='Linear Regression')
     plt.plot(avg_derror.index, avg_derror["random forest"], label='Random Forest')
