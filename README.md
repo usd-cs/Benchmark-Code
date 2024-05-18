@@ -32,6 +32,7 @@ The file ```output_script.py``` file will produce the RMSE of all three models (
 
 ## Comparing daily error across 30 buoys
 The file ```test_30_buoys.py``` outputs a graph of the average daily error for 31 buoys to show which models overall perform the best. 
-![derror30buoysheight](https://github.com/usd-cs/Benchmark-Code/assets/143650066/6818031f-c198-4a99-b3db-8ac07102b933)
 
+
+![derror30buoysheight](https://github.com/usd-cs/Benchmark-Code/assets/143650066/6818031f-c198-4a99-b3db-8ac07102b933)
 ![derror30buoysperiod](https://github.com/usd-cs/Benchmark-Code/assets/143650066/7a7159fb-efec-4b01-a31c-ff0080e46e0f)
