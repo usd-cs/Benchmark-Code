@@ -339,7 +339,9 @@ def print_rmse_and_dates(model_rmse, model_split_dates, num_records, model_name)
 
 def train_model(buoy, target):
     """
-    Train the model for linear regression and random forest
+    Train the model for linear regression and random forest and return a prediction for two weeks into the future.
+    This is the function that actually forecasts the future.
+
     Parameters:
     - buoy: the data we're training on
     - target: str the thing we're trying to predict (either
@@ -439,8 +441,10 @@ def predict(f, c, target, data, buoy_interpolated):
     - buoy_interpolated: dataframe of cleaned data
 
     Returns:
-    - merged_linear: dataframe of linear regression predictions and the recent 14 days of data (predictions and actual data)
-    - merged_rf: dataframe of random forest predictions and the recent 14 days of data
+    - merged_linear: dataframe of linear regression predictions for the target 
+      and the recent 14 days of data (predictions and actual data)
+    - merged_rf: dataframe of random forest predictions for the target and the recent 14 days of data
+      (predictions and actual data)
     """
     # Sets up date objects and floor and ceiling
     today_date = datetime.today().date()
@@ -457,6 +461,7 @@ def predict(f, c, target, data, buoy_interpolated):
     recent_df = data[data['date'] > pd.Timestamp(ceilingDate)]
     past_df = buoy_interpolated[(buoy_interpolated['date'] > pd.Timestamp(floorDate)) & (buoy_interpolated['date'] < pd.Timestamp(ceilingDate))]
 
+    # training the model on lagged data so we can test its forecasting accuracy
     lr_w_int_preds_df, rf_preds_df, two_week_predictions_linear, two_week_predictions_rf = train_model(past_df, target)
 
     # LINEAR PREDICTIONS   
@@ -567,7 +572,8 @@ def graph_daily_error(merged_linear, merged_rf, prediction_type, df):
     """
     Uses the calculated daily error from daily_error() and displays it in graph form
 
-    @param: merged_linear
+    @param: merged_linear dataframe of linear regression predictions and the recent 14 days of data (predictions and actual data)
+    @param: merged_rf dataframe of random forest predictions and the recent 14 days of data (predictions and actual data)
     @param: prediction_type (wave height or average period)
 
     @return: none
@@ -608,7 +614,7 @@ def predict_prophet(prediction_type, buoy_num):
 
     @return: the dataframe of predicted values using prophet
     """
-    df = rse_per_day(720, 15, prediction_type, buoy_num)
+    df = rse_per_day(720, 14, prediction_type, buoy_num)
     return df
 
 
